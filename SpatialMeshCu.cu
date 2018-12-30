@@ -12,81 +12,75 @@ __constant__ double d_boundary[6];
 #define FAR 4
 #define NEAR 5
 
-__device__ int GetIdxVolume() {
-	//int xStepthread = 1;
+__device__ int thread_idx_to_array_idx( int3 *d_n_nodes ){
+	int xStepThread = 1;
 	int xStepBlock = blockDim.x;
-
 	int yStepThread = d_n_nodes[0].x;
 	int yStepBlock = yStepThread * blockDim.y;
-
 	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
 	int zStepBlock = zStepThread * blockDim.z;
 
-	return threadIdx.x + blockIdx.x * xStepBlock + threadIdx.y * yStepThread
-		+ blockIdx.y * yStepBlock + threadIdx.z * zStepThread
-		+ blockIdx.z * zStepBlock;
+	return threadIdx.x * xStepThread + blockIdx.x * xStepBlock + 
+               threadIdx.y * yStepThread + blockIdx.y * yStepBlock + 
+               threadIdx.z * zStepThread + blockIdx.z * zStepBlock;
 }
+
+__device__ int3 thread_idx_to_mesh_idx( int3 *d_n_nodes ){
+        // each thread handles single volume node
+	int3 mesh_idx = make_int3( threadIdx.x + blockIdx.x * blockDim.x,
+                                   threadIdx.y + blockIdx.y * blockDim.y,
+	                           threadIdx.z + blockIdx.z * blockDim.z );
+        return mesh_idx;
+}
+
 
 __global__ void fill_coordinates(double3* node_coordinates) {
-
-	int idx = GetIdxVolume();
-
-	int x = threadIdx.x + blockIdx.x * blockDim.x;
-	int y = threadIdx.y + blockIdx.y * blockDim.y;
-	int z = threadIdx.z + blockIdx.z * blockDim.z;
-	node_coordinates[idx] = make_double3(d_volume_size[0].x * x,
-		d_volume_size[0].y * y, d_volume_size[0].z * z); //(double).,
+	int plain_idx = thread_idx_to_array_idx( d_n_nodes );
+	int3 mesh_idx = thread_idx_to_mesh_idx( d_n_nodes );
+        
+	node_coordinates[plain_idx] = make_double3(d_cell_size[0].x * mesh_idx.x,
+                                                   d_cell_size[0].y * mesh_idx.y, 
+                                                   d_cell_size[0].z * mesh_idx.z);
 }
 
-__global__ void SetBoundaryConditionOrthoX(double* potential) {
-	int xIdx = blockIdx.z * (d_n_nodes[0].x - 1); //0 or nodes.x-1
+__global__ void SetBoundaryConditionsX(double* potential){
+	// blockIdx.x is expected to be 0 or 1; 0 - right boundary, 1 - left boundary
+	int mesh_x = blockIdx.x * (d_n_nodes[0].x - 1);
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+		
+	int plain_idx = mesh_x + 
+               	        mesh_y * d_n_nodes[0].x + 
+               	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	int yStepThread = d_n_nodes[0].x; //x=
-	int yStepBlock = d_n_nodes[0].x * blockDim.x;
-
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
-	int zStepBlock = zStepThread * blockDim.y;
-
-	int idx = xIdx + threadIdx.x * yStepThread + blockIdx.x * yStepBlock
-		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
-
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[LEFT]
-		+ (blockIdx.z * d_boundary[RIGHT]);
-
+	potential[plain_idx] = blockIdx.x * d_boundary[LEFT] + (1.0 - blockIdx.x) * d_boundary[RIGHT];
 }
 
-__global__ void SetBoundaryConditionOrthoY(double* potential) {
-	int yIdx = blockIdx.z * d_n_nodes[0].x * (d_n_nodes[0].y - 1); //0 or nodes.x-1
+__global__ void SetBoundaryConditionsY(double* potential){
+	// blockIdx.y is expected to be 0 or 1; 0 - bottom boundary, 1 - top boundary
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = blockIdx.y * (d_n_nodes[0].y - 1);
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+		
+	int plain_idx = mesh_x + 
+               	        mesh_y * d_n_nodes[0].x + 
+               	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	int xStepThread = 1; //x=
-	int xStepBlock = blockDim.x;
-
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
-	int zStepBlock = zStepThread * blockDim.y;
-
-	int idx = yIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
-		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
-
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[BOTTOM]
-		+ (blockIdx.z * d_boundary[TOP]);
-
+	potential[plain_idx] = blockIdx.y * d_boundary[TOP] + (1.0 - blockIdx.y) * d_boundary[BOTTOM];
 }
 
-__global__ void SetBoundaryConditionOrthoZ(double* potential) {
-	int zIdx = blockIdx.z
-		* (d_n_nodes[0].x * d_n_nodes[0].y * (d_n_nodes[0].z - 1)); //0 or nodes.x-1
 
-	int xStepThread = 1; //x=
-	int xStepBlock = blockDim.x;
+__global__ void SetBoundaryConditionsZ(double* potential){
+	// blockIdx.z is expected to be 0 or 1; 0 - near boundary, 1 - far boundary
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = blockIdx.z * (d_n_nodes[0].z - 1);
+		
+	int plain_idx = mesh_x + 
+               	        mesh_y * d_n_nodes[0].x + 
+               	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	int yStepThread = d_n_nodes[0].x;
-	int yStepBlock = yStepThread * blockDim.y;
-
-	int idx = zIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
-		+ threadIdx.y * yStepThread + blockIdx.y * yStepBlock;
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[NEAR]
-		+ (blockIdx.z * d_boundary[FAR]);
-
+	potential[plain_idx] = blockIdx.z * d_boundary[FAR] + (1.0 - blockIdx.z) * d_boundary[NEAR];
 }
 
 SpatialMeshCu::SpatialMeshCu(Config &conf) {
@@ -256,9 +250,7 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	boundary[BOTTOM] = conf.boundary_config_part.boundary_phi_bottom;
 	boundary[NEAR] = conf.boundary_config_part.boundary_phi_near;
 	boundary[FAR] = conf.boundary_config_part.boundary_phi_far;
-	const double *c_boundary = boundary;
-	cuda_status = cudaMemcpyToSymbol(d_boundary, (const void*)c_boundary,
-		sizeof(double)*6);
+	cuda_status = cudaMemcpyToSymbol(d_boundary, boundary, 6 * sizeof(double));
 	cuda_status_check(cuda_status, debug_message);
 }
 
@@ -272,7 +264,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 
 	std::string debug_message = std::string(" malloc coords");
 
-	cuda_status = cudaMalloc < double3 >(&dev_node_coordinates, sizeof(double3) * total_node_count);
+	cuda_status = cudaMalloc<double3>(&dev_node_coordinates, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" malloc charde density");
@@ -284,7 +276,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" malloc field");
-	cuda_status = cudaMalloc < double3 >(&dev_electric_field, sizeof(double3) * total_node_count);
+	cuda_status = cudaMalloc<double3>(&dev_electric_field, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
 	return;
@@ -295,8 +287,8 @@ void SpatialMeshCu::fill_node_coordinates() {
 	dim3 blocks = GetBlocks(threads);
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" fill coordinates ");
-	fill_coordinates <<< blocks,threads>>> (dev_node_coordinates);
-	cuda_status= cudaDeviceSynchronize();
+	fill_coordinates<<<blocks,threads>>>(dev_node_coordinates);
+	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
 	return;
@@ -311,25 +303,29 @@ void SpatialMeshCu::clear_old_density_values() {
 }
 
 void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
-	dim3 threads = dim3(4, 4, 2);
+	dim3 threads, blocks;		
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" set boundary ");
 
-	dim3 blocks = dim3(n_nodes.y / 4, n_nodes.z / 4, 1);
-	SetBoundaryConditionOrthoX <<< blocks, threads >>> (d_potential);
+	// todo: no magic numbers
+	threads = dim3(1, 4, 4);
+	blocks = dim3(2, n_nodes.y / 4, n_nodes.z / 4);
+	SetBoundaryConditionsX<<<blocks, threads>>>(d_potential);
+	cuda_status = cudaDeviceSynchronize();
+	cuda_status_check(cuda_status, debug_message);
+	
+	threads = dim3(4, 1, 4);
+	blocks = dim3(n_nodes.x / 4, 2, n_nodes.z / 4);
+	SetBoundaryConditionsY<<<blocks, threads>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
-	blocks = dim3(n_nodes.x / 4, n_nodes.z / 4, 2);
-	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential);
-	cuda_status = cudaDeviceSynchronize();
-	cuda_status_check(cuda_status, debug_message);
-
+	threads = dim3(4, 4, 1);
 	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
-	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential);
+	SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
-
+	
 	return;
 }
 
@@ -475,7 +471,7 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 			nz[i] = hdf5_tmp_write_data[i].z;
 		}
 
-		dset = H5Dcreate(group_id, "./node_coordinates_x ", H5T_IEEE_F64BE,
+		dset = H5Dcreate(group_id, "./node_coordinates_x", H5T_IEEE_F64BE,
 			filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		hdf5_status_check(dset);
 		status = H5Dwrite(dset, H5T_NATIVE_DOUBLE, H5S_ALL, filespace,
@@ -544,13 +540,13 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 
 	}
 	{
-		debug_message = std::string(" write hdf5 charge_density ");
+		debug_message = std::string(" write electric field to hdf5 ");
 
 		double *ex = new double[dims[0]];
 		double *ey = new double[dims[0]];
 		double *ez = new double[dims[0]];
 		double3 *hdf5_tmp_write_data = new double3[dims[0]];
-		cuda_status = cudaMemcpy( hdf5_tmp_write_data, dev_node_coordinates,
+		cuda_status = cudaMemcpy(hdf5_tmp_write_data, dev_electric_field,
 			sizeof(double3) * dims[0], cudaMemcpyDeviceToHost);
 		cuda_status_check(cuda_status, debug_message);
 
@@ -693,6 +689,7 @@ void SpatialMeshCu::cuda_status_check(cudaError_t status, std::string &sender)
 }
 
 dim3 SpatialMeshCu::GetThreads() {
+	// todo: explicitly determine number of threads from GPU warp size
 	return dim3(4, 4, 4);
 }
 
