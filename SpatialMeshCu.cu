@@ -550,7 +550,7 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 		double *ey = new double[dims[0]];
 		double *ez = new double[dims[0]];
 		double3 *hdf5_tmp_write_data = new double3[dims[0]];
-		cuda_status = cudaMemcpy(dev_node_coordinates, hdf5_tmp_write_data,
+		cuda_status = cudaMemcpy( hdf5_tmp_write_data, dev_node_coordinates,
 			sizeof(double3) * dims[0], cudaMemcpyDeviceToHost);
 		cuda_status_check(cuda_status, debug_message);
 
