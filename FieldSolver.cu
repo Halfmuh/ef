@@ -46,7 +46,7 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 	int prev_neighbour_idx;
 	int next_neighbour_idx;
 
-	double denom = (double)2 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
+	double denom = 2.0 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
 
 	prev_neighbour_idx = max(idx - offset_Dx, 0);
 	next_neighbour_idx = min(idx + offset_Dx, dev_end[0]);
@@ -215,7 +215,7 @@ void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
 
 void FieldSolver::solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions)
 {
-	max_Jacobi_iterations = 150;
+	max_Jacobi_iterations = 1;
 	int iter;
 
 	for (iter = 0; iter < max_Jacobi_iterations; ++iter) {
