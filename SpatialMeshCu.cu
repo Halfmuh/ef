@@ -53,7 +53,7 @@ __global__ void SetBoundaryConditionsX(double* potential){
                	        mesh_y * d_n_nodes[0].x + 
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	potential[plain_idx] = blockIdx.x * d_boundary[LEFT] + (1.0 - blockIdx.x) * d_boundary[RIGHT];
+	potential[plain_idx] = (double)blockIdx.x * d_boundary[LEFT] + (1.0 - blockIdx.x) * d_boundary[RIGHT];
 }
 
 __global__ void SetBoundaryConditionsY(double* potential){
@@ -66,7 +66,7 @@ __global__ void SetBoundaryConditionsY(double* potential){
                	        mesh_y * d_n_nodes[0].x + 
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	potential[plain_idx] = blockIdx.y * d_boundary[TOP] + (1.0 - blockIdx.y) * d_boundary[BOTTOM];
+	potential[plain_idx] = (double)blockIdx.y * d_boundary[TOP] + (1.0 - blockIdx.y) * d_boundary[BOTTOM];
 }
 
 
@@ -80,7 +80,7 @@ __global__ void SetBoundaryConditionsZ(double* potential){
                	        mesh_y * d_n_nodes[0].x + 
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	potential[plain_idx] = blockIdx.z * d_boundary[FAR] + (1.0 - blockIdx.z) * d_boundary[NEAR];
+	potential[plain_idx] = ((double)blockIdx.z) * d_boundary[FAR] + (1.0 - blockIdx.z) * d_boundary[NEAR];
 }
 
 SpatialMeshCu::SpatialMeshCu(Config &conf) {
