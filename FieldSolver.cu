@@ -48,17 +48,17 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 
 	double denom = (double)2 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
 
-	prev_neighbour_idx = max(idx + offset_Dx, 0);
+	prev_neighbour_idx = max(idx - offset_Dx, 0);
 	next_neighbour_idx = min(idx + offset_Dx, dev_end[0]);
 	d_phi_next[idx] =
 		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dydydzdz[0];
 
-	prev_neighbour_idx = max(idx + offset_Dy, 0);
+	prev_neighbour_idx = max(idx - offset_Dy, 0);
 	next_neighbour_idx = min(idx + offset_Dy, dev_end[0]);
 	d_phi_next[idx] +=
 		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdzdz[0];
 
-	prev_neighbour_idx = max(idx + offset_Dz, 0);
+	prev_neighbour_idx = max(idx - offset_Dz, 0);
 	next_neighbour_idx = min(idx + offset_Dz, dev_end[0]);
 	d_phi_next[idx] +=
 		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdydy[0];
