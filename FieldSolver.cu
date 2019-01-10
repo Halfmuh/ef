@@ -57,11 +57,6 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 	int next_y = min(mesh_y + 1, d_n_nodes[0].y - 1);
 	int next_z = min(mesh_z + 1, d_n_nodes[0].z - 1);
 	
-	int offset_Dx = 1;
-	//todo rewrite usind device n_nodes.x/y/z
-	int offset_Dy = d_n_nodes[0].x;
-	int offset_Dz = d_n_nodes[0].x * d_n_nodes[0].y;
-
 	int prev_neighbour_idx;
 	int next_neighbour_idx;
 
@@ -235,7 +230,7 @@ void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
 
 void FieldSolver::solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions)
 {
-	max_Jacobi_iterations = 150;
+	max_Jacobi_iterations = 1;
 	int iter;
 
 	for (iter = 0; iter < max_Jacobi_iterations; ++iter) {
