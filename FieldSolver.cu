@@ -50,6 +50,7 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 
 	prev_neighbour_idx = max(idx - offset_Dx, 0);
 	next_neighbour_idx = min(idx + offset_Dx, dev_end[0]);
+
 	d_phi_next[idx] =
 		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dydydzdz[0];
 
@@ -80,21 +81,21 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 	int offset;
 
 	offset = 1;
-	is_on_up_border = (blockIdx.x == 0);
-	is_on_low_border = (blockIdx.x == (gridDim.x - 1));
+	is_on_up_border = (threadIdx.x == 0) && (blockIdx.x == 0);
+	is_on_low_border = (threadIdx.x == (blockDim.x - 1)) && (blockIdx.x == (gridDim.x - 1));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
-	e.x = -((double)1 / ((double)1 + is_inside_borders)) * GradientComponent(
+	e.x = -(1.0 / (1.0 + is_inside_borders)) * GradientComponent(
 		dev_potential[idx + (offset*is_on_up_border) - (offset*is_inside_borders)],
 		dev_potential[idx - (offset*is_on_low_border) + (offset*is_inside_borders)],
 		d_cell_size[0].x);
 
 	offset = d_n_nodes[0].x;
-	is_on_up_border = (blockIdx.y == 0);
-	is_on_low_border = (blockIdx.y == (gridDim.y - 1));
+	is_on_up_border = (threadIdx.y == 0) && (blockIdx.y == 0);
+	is_on_low_border = (threadIdx.y == (blockDim.y - 1)) && (blockIdx.y == (gridDim.y - 1));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
-	e.y = -((double)1 / ((double)1 + is_inside_borders)) * GradientComponent(
+	e.y = -(1.0 / (1.0 + is_inside_borders)) * GradientComponent(
 		dev_potential[idx + (offset*is_on_up_border) - (offset*is_inside_borders)],
 		dev_potential[idx - (offset*is_on_low_border) + (offset*is_inside_borders)],
 		d_cell_size[0].y);
@@ -104,7 +105,7 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 	is_on_low_border = (blockIdx.z == (gridDim.z - 1));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
-	e.z = -((double)1 / ((double)1 + is_inside_borders)) * GradientComponent(
+	e.z = -(1.0 / (1.0 + is_inside_borders)) * GradientComponent(
 		dev_potential[idx + (offset * is_on_up_border) - (offset * is_inside_borders)],
 		dev_potential[idx - (offset * is_on_low_border) + (offset * is_inside_borders)],
 		d_cell_size[0].z);

@@ -254,11 +254,17 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	std::string debug_message = std::string(" copy border constants ");
 	double boundary[6];
 	boundary[RIGHT] = conf.boundary_config_part.boundary_phi_right;
+	assert(boundary[RIGHT] == 0.0);
 	boundary[LEFT] = conf.boundary_config_part.boundary_phi_left;
+	assert(boundary[LEFT] == 0.0);
 	boundary[TOP] = conf.boundary_config_part.boundary_phi_top;
+	assert(boundary[TOP] == 0.0);
 	boundary[BOTTOM] = conf.boundary_config_part.boundary_phi_bottom;
+	assert(boundary[BOTTOM] == 0.0);
 	boundary[NEAR] = conf.boundary_config_part.boundary_phi_near;
+	assert(boundary[NEAR] > 0.0);
 	boundary[FAR] = conf.boundary_config_part.boundary_phi_far;
+	assert(boundary[FAR] < 0.0);
 	cuda_status = cudaMemcpyToSymbol(d_boundary, boundary, 6 * sizeof(double));
 	cuda_status_check(cuda_status, debug_message);
 }
