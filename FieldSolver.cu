@@ -26,7 +26,13 @@ __device__ int GetIdx() {
 		(threadIdx.y * yStepThread + blockIdx.y * yStepBlock) +
 		(threadIdx.z * zStepThread + blockIdx.z * zStepBlock);
 }
+__device__ int GetIdx(int x, int y, int z) {
+	return 
+		x +
+		y * d_n_nodes[0].x +
+		z * d_n_nodes[0].x * d_n_nodes[0].y;
 
+}
 __device__ double GradientComponent(double phi1, double phi2, double cell_side_size) {
 	return ((phi2 - phi1) / cell_side_size);
 }
@@ -37,7 +43,18 @@ __global__ void SetPhiNextAsCurrent(double* d_phi_current, double* d_phi_next) {
 }
 
 __global__ void ComputePhiNext(const double* d_phi_current, const double* d_charge, double* d_phi_next) {
-	int idx = GetIdx();
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+
+	int prev_x = max(mesh_x, 1);
+	int prev_y = max(mesh_y, 1);
+	int prev_z = max(mesh_z, 1);
+
+	int next_x = min(mesh_x + 1, d_n_nodes[0].x);
+	int next_y = min(mesh_y + 1, d_n_nodes[0].y);
+	int next_z = min(mesh_z + 1, d_n_nodes[0].z);
+	
 	int offset_Dx = 1;
 	//todo rewrite usind device n_nodes.x/y/z
 	int offset_Dy = d_n_nodes[0].x;
@@ -48,19 +65,19 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 
 	double denom = 2.0 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
 
-	prev_neighbour_idx = max(idx - offset_Dx, 0);
-	next_neighbour_idx = min(idx + offset_Dx, dev_end[0]);
+	prev_neighbour_idx = GetIdx(prev_x, mesh_y, mesh_z);
+	next_neighbour_idx = GetIdx(next_x, mesh_y, mesh_z);
 
 	d_phi_next[idx] =
 		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dydydzdz[0];
 
-	prev_neighbour_idx = max(idx - offset_Dy, 0);
-	next_neighbour_idx = min(idx + offset_Dy, dev_end[0]);
+	prev_neighbour_idx = GetIdx(mesh_x, prev_y, mesh_z);
+	next_neighbour_idx = GetIdx(mesh_x, next_y, mesh_z);
 	d_phi_next[idx] +=
 		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdzdz[0];
 
-	prev_neighbour_idx = max(idx - offset_Dz, 0);
-	next_neighbour_idx = min(idx + offset_Dz, dev_end[0]);
+	prev_neighbour_idx = GetIdx(mesh_x, mesh_y, prev_z);
+	next_neighbour_idx = GetIdx(mesh_x, mesh_y, next_z);
 	d_phi_next[idx] +=
 		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdydy[0];
 
