@@ -47,6 +47,8 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
 
+	int idx = GetIdx(mesh_x, mesh_y, mesh_z);
+
 	int prev_x = max(mesh_x - 1, 0);
 	int prev_y = max(mesh_y - 1, 0);
 	int prev_z = max(mesh_z - 1, 0);
