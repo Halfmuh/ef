@@ -53,9 +53,9 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 	int prev_y = max(mesh_y - 1, 0);
 	int prev_z = max(mesh_z - 1, 0);
 
-	int next_x = min(mesh_x - 1, d_n_nodes[0].x);
-	int next_y = min(mesh_y - 1, d_n_nodes[0].y);
-	int next_z = min(mesh_z - 1, d_n_nodes[0].z);
+	int next_x = min(mesh_x + 1, d_n_nodes[0].x - 1);
+	int next_y = min(mesh_y + 1, d_n_nodes[0].y - 1);
+	int next_z = min(mesh_z + 1, d_n_nodes[0].z - 1);
 	
 	int offset_Dx = 1;
 	//todo rewrite usind device n_nodes.x/y/z
