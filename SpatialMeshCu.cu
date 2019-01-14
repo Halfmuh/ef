@@ -81,14 +81,12 @@ __global__ void SetBoundaryConditionsZ(double* potential){
                	        mesh_y * d_n_nodes[0].x + 
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	potential[plain_idx] = d_boundary[FAR]*(double(blockIdx.z)) +  d_boundary[NEAR] * (1.0 - blockIdx.z);
+	//potential[plain_idx] = d_boundary[FAR]*(double(blockIdx.z)) +  d_boundary[NEAR] * (1.0 - blockIdx.z);
 	if (blockIdx.z == 0) {
-		assert(potential[plain_idx] == d_boundary[NEAR]);
-		assert(plain_idx / (d_n_nodes[0].x * d_n_nodes[0].y) == 0);
+		potential[plain_idx] = d_boundary[FAR] * (double(blockIdx.z));
 	}
-	if (blockIdx.z == 1) {
-		assert(potential[plain_idx] == d_boundary[FAR]);
-		assert(plain_idx / (d_n_nodes[0].x * d_n_nodes[0].y) == (d_n_nodes[0].z - 1));
+	else {
+		potential[plain_idx] = d_boundary[NEAR] * (1.0 - blockIdx.z);
 	}
 }
 
@@ -293,7 +291,6 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	debug_message = std::string(" malloc field");
 	cuda_status = cudaMalloc<double3>(&dev_electric_field, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
-
 	return;
 }
 
