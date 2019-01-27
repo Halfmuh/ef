@@ -230,7 +230,7 @@ void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
 
 void FieldSolver::solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions)
 {
-	max_Jacobi_iterations = 1;
+	max_Jacobi_iterations = 150;
 	int iter;
 
 	for (iter = 0; iter < max_Jacobi_iterations; ++iter) {
