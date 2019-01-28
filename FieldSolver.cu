@@ -13,8 +13,6 @@ __constant__ double dev_dxdxdzdz[1];
 __constant__ double dev_dydydzdz[1];
 __constant__ double dev_dxdxdydydzdz[1];
 
-__constant__ int dev_end[1];
-
 __device__ int GetIdx() {
 	//int xStepthread = 1;
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -217,8 +215,6 @@ void FieldSolver::copy_constants_to_device() {
 		mesh.cell_size.z * mesh.cell_size.z;
 	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydydzdz, (const void*)&dxdxdydydzdz, sizeof(double));
 
-	int end = mesh.n_nodes.x * mesh.n_nodes.y * mesh.n_nodes.z - 1;
-	cuda_status = cudaMemcpyToSymbol(dev_end, (const void*)&end, sizeof(int));
 }
 
 void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
