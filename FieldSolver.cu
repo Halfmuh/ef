@@ -195,7 +195,7 @@ void FieldSolver::allocate_next_phi()
 void FieldSolver::copy_constants_to_device() {
 	cudaError_t cuda_status;
 
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&mesh.n_nodes, sizeof(dim3));
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&mesh.n_nodes, sizeof(int3));
 	cuda_status = cudaMemcpyToSymbol(d_cell_size, (const void*)&mesh.cell_size, sizeof(double3));
 
 	double dxdxdydy = mesh.cell_size.x * mesh.cell_size.x *
