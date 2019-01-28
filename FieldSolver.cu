@@ -223,7 +223,7 @@ void FieldSolver::copy_constants_to_device() {
 
 void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
 {
-	solve_poisson_eqn_Jacobi(inner_regions);
+	//solve_poisson_eqn_Jacobi(inner_regions);
 }
 
 void FieldSolver::solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions)
