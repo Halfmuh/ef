@@ -17,14 +17,12 @@ __constant__ int dev_end[1];
 
 __device__ int GetIdx() {
 	//int xStepthread = 1;
-	int xStepBlock = blockDim.x;
-	int yStepThread = d_n_nodes[0].x;
-	int yStepBlock = yStepThread * blockDim.y;
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
-	int zStepBlock = zStepThread * blockDim.z;
-	return (threadIdx.x + blockIdx.x * xStepBlock) +
-		(threadIdx.y * yStepThread + blockIdx.y * yStepBlock) +
-		(threadIdx.z * zStepThread + blockIdx.z * zStepBlock);
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+	return mesh_x +
+			mesh_y * d_n_nodes[0].x +
+			mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;
 }
 __device__ int GetIdx(int x, int y, int z) {
 	return 
