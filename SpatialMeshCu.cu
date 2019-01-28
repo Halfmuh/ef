@@ -83,10 +83,10 @@ __global__ void SetBoundaryConditionsZ(double* potential){
 
 	//potential[plain_idx] = d_boundary[FAR]*(double(blockIdx.z)) +  d_boundary[NEAR] * (1.0 - blockIdx.z);
 	if (blockIdx.z == 0) {
-		potential[plain_idx] = d_boundary[FAR] * (double(blockIdx.z));
+		potential[plain_idx] = d_boundary[NEAR];
 	}
 	else {
-		potential[plain_idx] = d_boundary[NEAR] * (1.0 - blockIdx.z);
+		potential[plain_idx] = d_boundary[FAR];
 	}
 }
 
