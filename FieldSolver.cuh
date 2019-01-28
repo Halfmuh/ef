@@ -36,6 +36,7 @@ private:
 	void set_phi_next_at_inner_regions(Inner_regions_manager &inner_regions);
 	bool iterative_Jacobi_solutions_converged();
 	void set_phi_next_as_phi_current();
+	void cuda_status_check(cudaError_t status, std::string &sender);
 };
 
 #endif  /*_FIELD_SOLVER_CUH_*/

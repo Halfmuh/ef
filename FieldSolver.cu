@@ -194,26 +194,30 @@ void FieldSolver::allocate_next_phi()
 
 void FieldSolver::copy_constants_to_device() {
 	cudaError_t cuda_status;
-
+	std::string cudaErrorMessage = "const copy to device";
 	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&mesh.n_nodes, sizeof(int3));
 	cuda_status = cudaMemcpyToSymbol(d_cell_size, (const void*)&mesh.cell_size, sizeof(double3));
 
 	double dxdxdydy = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.y * mesh.cell_size.y;
 	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydy, (const void*)&dxdxdydy, sizeof(double));
+	cuda_status_check(cuda_status, cudaErrorMessage);
 
 	double dxdxdzdz = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.z * mesh.cell_size.z;
 	cuda_status = cudaMemcpyToSymbol(dev_dxdxdzdz, (const void*)&dxdxdzdz, sizeof(double));
+	cuda_status_check(cuda_status, cudaErrorMessage);
 
 	double dydydzdz = mesh.cell_size.y * mesh.cell_size.y *
 		mesh.cell_size.z * mesh.cell_size.z;
 	cuda_status = cudaMemcpyToSymbol(dev_dydydzdz, (const void*)&dydydzdz, sizeof(double));
+	cuda_status_check(cuda_status, cudaErrorMessage);
 
 	double dxdxdydydzdz = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.y * mesh.cell_size.y *
 		mesh.cell_size.z * mesh.cell_size.z;
 	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydydzdz, (const void*)&dxdxdydydzdz, sizeof(double));
+	cuda_status_check(cuda_status, cudaErrorMessage);
 
 }
 
@@ -259,9 +263,11 @@ void FieldSolver::compute_phi_next_at_inner_points()
 	dim3 threads = mesh.GetThreads();
 	dim3 blocks = mesh.GetBlocks(threads);
 	cudaError_t cuda_status;
+	std::string cudaErrorMessage = "compute fi";
 
 	ComputePhiNext<<<blocks, threads>>>(mesh.dev_potential, mesh.dev_charge_density, dev_phi_next);
 	cuda_status = cudaDeviceSynchronize();
+	cuda_status_check(cuda_status, cudaErrorMessage);
 }
 
 void FieldSolver::set_phi_next_at_inner_regions(Inner_regions_manager &inner_regions)
@@ -289,8 +295,11 @@ bool FieldSolver::iterative_Jacobi_solutions_converged()
 	status = cudaHostGetDevicePointer((void **)&d_convergence, convergence, 0);
 
 	const int nwarps = 2;
+	std::string cudaErrorMessage = "convergence";
+
 	Convergence<nwarps><<<blocks, threads>>>(mesh.dev_potential, dev_phi_next, d_convergence);
 	status = cudaDeviceSynchronize();
+	cuda_status_check(status, cudaErrorMessage);
 	//if (status == cudaErrorAssert) {
 	//	return false;
 	//}
@@ -325,6 +334,13 @@ void FieldSolver::eval_fields_from_potential()
 	return;
 }
 
+void FieldSolver::cuda_status_check(cudaError_t status, std::string &sender)
+{
+	if (status > 0) {
+		std::cout << "Cuda error at" << sender << ": " << cudaGetErrorString(status) << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
 
 
 
