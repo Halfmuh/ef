@@ -35,7 +35,7 @@ __device__ double GradientComponent(double phi1, double phi2, double cell_side_s
 	return ((phi2 - phi1) / cell_side_size);
 }
 
-__global__ void SetPhiNextAsCurrent(double* d_phi_current, double* d_phi_next) {
+__global__ void SetPhiNextAsCurrent(double* d_phi_current, const double* d_phi_next) {
 	int idx = GetIdx();
 	d_phi_current[idx] = d_phi_next[idx];
 }
