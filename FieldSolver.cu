@@ -190,7 +190,7 @@ void FieldSolver::allocate_next_phi()
 	size_t dim = mesh.n_nodes.x * mesh.n_nodes.y * mesh.n_nodes.z;
 	cudaError_t cuda_status;
 
-	cuda_status = cudaMalloc<double>(&dev_phi_next, dim);
+	cuda_status = cudaMalloc<double>(&dev_phi_next, dim * sizeof(double) );
 
 }
 
