@@ -229,14 +229,12 @@ void SpatialMeshCu::init_constants(Config & conf) {
 void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
 	//mesh params
-	const int3 *nodes = &n_nodes;
 	std::string debug_message = std::string(" copy nodes number ");
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)nodes, sizeof(int3));
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&n_nodes, sizeof(int3));
 	cuda_status_check(cuda_status, debug_message);
 
-	const double3 *volume = &volume_size;
 	debug_message = std::string(" copy volume size ");
-	cuda_status = cudaMemcpyToSymbol(d_volume_size, (const void*)&volume, sizeof(double3));
+	cuda_status = cudaMemcpyToSymbol(d_volume_size, (const void*)&volume_size, sizeof(double3));
 	cuda_status_check(cuda_status, debug_message);
 	
 	debug_message = std::string(" copy cell size ");
