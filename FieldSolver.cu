@@ -66,13 +66,15 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 
 	prev_neighbour_idx = GetIdx(mesh_x, prev_y, mesh_z);
 	next_neighbour_idx = GetIdx(mesh_x, next_y, mesh_z);
-	d_phi_next[idx] +=
-		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdzdz[0];
+	d_phi_next[idx] =
+		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdzdz[0] 
+		+ d_phi_next[idx];
 
 	prev_neighbour_idx = GetIdx(mesh_x, mesh_y, prev_z);
 	next_neighbour_idx = GetIdx(mesh_x, mesh_y, next_z);
-	d_phi_next[idx] +=
-		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdydy[0];
+	d_phi_next[idx] =
+		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdydy[0]
+		+ d_phi_next[idx];
 
 	d_phi_next[idx] += 4.0 * CUDART_PI * d_charge[idx] * dev_dxdxdydydzdz[0];
 	d_phi_next[idx] /= denom;

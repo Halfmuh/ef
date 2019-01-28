@@ -218,8 +218,8 @@ void SpatialMeshCu::init_constants(Config & conf) {
 		conf.mesh_config_part.grid_y_size,
 		conf.mesh_config_part.grid_z_size);
 
-	cell_size = make_double3(volume_size.x / (n_nodes.x - 1),
-		volume_size.y / (n_nodes.y - 1), volume_size.z / (n_nodes.z - 1));
+	cell_size = make_double3(volume_size.x / (n_nodes.x - 1.0),
+		volume_size.y / (n_nodes.y - 1.0), volume_size.z / (n_nodes.z - 1.0));
 
 
 	copy_constants_to_device();
