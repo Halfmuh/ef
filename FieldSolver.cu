@@ -13,20 +13,14 @@ __constant__ double dev_dxdxdzdz[1];
 __constant__ double dev_dydydzdz[1];
 __constant__ double dev_dxdxdydydzdz[1];
 
-__device__ int3 GetMeshIdx() {
-	return make_int3(
-		threadIdx.x + blockIdx.x * blockDim.x,
-		threadIdx.y + blockIdx.y * blockDim.y,
-		threadIdx.z + blockIdx.z * blockDim.z
-	);
-
-}
 __device__ int GetIdx() {
 	//int xStepthread = 1;
-	int3 meshIdx = GetMeshIdx();
-	return meshIdx.x +
-			meshIdx.y * d_n_nodes[0].x +
-			meshIdx.z * d_n_nodes[0].x * d_n_nodes[0].y;
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+	return mesh_x +
+			mesh_y * d_n_nodes[0].x +
+			mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;
 }
 __device__ int GetIdx(int x, int y, int z) {
 	return 
@@ -35,7 +29,6 @@ __device__ int GetIdx(int x, int y, int z) {
 		z * d_n_nodes[0].x * d_n_nodes[0].y;
 
 }
-
 __device__ double GradientComponent(double phi1, double phi2, double cell_side_size) {
 	return ((phi2 - phi1) / cell_side_size);
 }
@@ -44,15 +37,17 @@ __global__ void SetPhiNextAsCurrent(double* d_phi_current, const double* d_phi_n
 	int idx = GetIdx();
 	d_phi_current[idx] = d_phi_next[idx];
 }
-__device__ bool NearBorderCheck(double potential) {
-	return potential >= 0;
-}
 
 __global__ void ComputePhiNext(const double* d_phi_current, const double* d_charge, double* d_phi_next) {
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
 
-	int3 mesh_idx = GetMeshIdx();
+	int idx = GetIdx(mesh_x, mesh_y, mesh_z);
 
-	int idx = GetIdx();
+	int prev_x = max(mesh_x - 1, 0);
+	int prev_y = max(mesh_y - 1, 0);
+	int prev_z = max(mesh_z - 1, 0);
 
 	int3 prevCellIdx =  make_int3(
 			max(mesh_idx.x - 1, 0),
@@ -91,6 +86,8 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 	double denom = 2.0 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
 	//assert(denom > 0.0);
 
+	prev_neighbour_idx = GetIdx(prev_x, mesh_y, mesh_z);
+	next_neighbour_idx = GetIdx(next_x, mesh_y, mesh_z);
 
 	prev_neighbour_idx = GetIdx(prevCellIdx.x, mesh_idx.y, mesh_idx.z);
 	next_neighbour_idx = GetIdx(nextCellIdx.x, mesh_idx.y, mesh_idx.z);
@@ -148,8 +145,6 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 	bool is_inside_borders;
 	int offset;
 
-
-	
 	offset = 1;
 	is_on_up_border = (threadIdx.x == 0) && (blockIdx.x == 0);
 	is_on_low_border = (threadIdx.x == (blockDim.x - 1)) && (blockIdx.x == (gridDim.x - 1));
@@ -165,12 +160,11 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 	is_on_low_border = (threadIdx.y == (blockDim.y - 1)) && (blockIdx.y == (gridDim.y - 1));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
-	
 	e.y = -(1.0 / (1.0 + is_inside_borders)) * GradientComponent(
 		dev_potential[idx + (offset*is_on_up_border) - (offset*is_inside_borders)],
 		dev_potential[idx - (offset*is_on_low_border) + (offset*is_inside_borders)],
 		d_cell_size[0].y);
-	
+
 	offset = d_n_nodes[0].y*d_n_nodes[0].x;
 	is_on_up_border = (threadIdx.z == 0) && (blockIdx.z == 0);
 	is_on_low_border = (threadIdx.z == (blockDim.z - 1)) && (blockIdx.z == (gridDim.z - 1));
@@ -326,7 +320,7 @@ void FieldSolver::compute_phi_next_at_inner_points()
 	cudaError_t cuda_status;
 	std::string cudaErrorMessage = "compute fi";
 
-	ComputePhiNext<<<threads, blocks>>>(mesh.dev_potential, mesh.dev_charge_density, dev_phi_next);
+	ComputePhiNext<<<blocks, threads>>>(mesh.dev_potential, mesh.dev_charge_density, dev_phi_next);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, cudaErrorMessage);
 }
@@ -358,7 +352,7 @@ bool FieldSolver::iterative_Jacobi_solutions_converged()
 	const int nwarps = 2;
 	std::string cudaErrorMessage = "convergence";
 
-	Convergence<nwarps><<<threads, blocks>>>(mesh.dev_potential, dev_phi_next, d_convergence);
+	Convergence<nwarps><<<blocks, threads>>>(mesh.dev_potential, dev_phi_next, d_convergence);
 	status = cudaDeviceSynchronize();
 	cuda_status_check(status, cudaErrorMessage);
 	//if (status == cudaErrorAssert) {
@@ -378,7 +372,7 @@ void FieldSolver::set_phi_next_as_phi_current()
 	dim3 threads = mesh.GetThreads();
 	dim3 blocks = mesh.GetBlocks(threads);
 	cudaError_t cuda_status;
-	SetPhiNextAsCurrent<<<threads, blocks>>>(mesh.dev_potential, dev_phi_next);
+	SetPhiNextAsCurrent<<<blocks, threads>>>(mesh.dev_potential, dev_phi_next);
 	cuda_status = cudaDeviceSynchronize();
 }
 
@@ -389,7 +383,7 @@ void FieldSolver::eval_fields_from_potential()
 	dim3 blocks = mesh.GetBlocks(threads);
 	cudaError_t cuda_status;
 
-	EvaluateFields<<<threads, blocks>>>(mesh.dev_potential, mesh.dev_electric_field);
+	EvaluateFields<<<blocks, threads>>>(mesh.dev_potential, mesh.dev_electric_field);
 
 	cuda_status = cudaDeviceSynchronize();
 	return;
