@@ -294,7 +294,7 @@ void SpatialMeshCu::fill_node_coordinates() {
 	dim3 blocks = GetBlocks(threads);
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" fill coordinates ");
-	fill_coordinates<<<blocks,threads>>>(dev_node_coordinates);
+	fill_coordinates<<<threads, blocks>>>(dev_node_coordinates);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
@@ -317,29 +317,34 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	// todo: no magic numbers
 	threads = dim3(1, 4, 4);
 	blocks = dim3(2, n_nodes.y / 4, n_nodes.z / 4);
-	SetBoundaryConditionsX<<<blocks, threads>>>(d_potential);
+	SetBoundaryConditionsX<<<threads, blocks >>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 	
 	threads = dim3(4, 1, 4);
 	blocks = dim3(n_nodes.x / 4, 2, n_nodes.z / 4);
-	SetBoundaryConditionsY<<<blocks, threads>>>(d_potential);
+	SetBoundaryConditionsY<<<threads, blocks>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
 	threads = dim3(4, 4, 1);
 	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
-	SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
+	SetBoundaryConditionsZ<<<threads, blocks>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 	
 	return;
 }
 
+__device__ void AssertCornersAreEqual(int3 corner1, int3 corner2) {
+	int idx1=
+}
+
 bool SpatialMeshCu::is_potential_equal_on_boundaries() {
 	//bool equal = (potential[0][2][2] == potential[x_n_nodes - 1][2][2] ==
 	//	potential[2][0][2] == potential[2][y_n_nodes - 1][2] ==
 	//	potential[2][2][0] == potential[2][2][z_n_nodes - 1]);
+
 	// possible to rewrite to avoid warnings from compiler:
 	// bool equal = ( potential[0][2][2] == potential[x_n_nodes-1][2][2] );
 	// equal = equal and ( potential[x_n_nodes-1][2][2] == potential[2][0][2] );
