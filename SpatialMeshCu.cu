@@ -336,9 +336,6 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	return;
 }
 
-__device__ void AssertCornersAreEqual(int3 corner1, int3 corner2) {
-	int idx1=
-}
 
 bool SpatialMeshCu::is_potential_equal_on_boundaries() {
 	//bool equal = (potential[0][2][2] == potential[x_n_nodes - 1][2][2] ==
