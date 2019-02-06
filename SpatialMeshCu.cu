@@ -76,7 +76,8 @@ __global__ void SetBoundaryConditionsZ(double* potential){
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = blockIdx.z * (d_n_nodes[0].z - 1);
-		
+	assert((blockIdx.z == 0) || (blockIdx.z == 1));
+	assert((mesh_z == 0) || (mesh_z == (d_n_nodes[0].z - 1)));
 	int plain_idx = mesh_x + 
                	        mesh_y * d_n_nodes[0].x + 
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
@@ -84,9 +85,13 @@ __global__ void SetBoundaryConditionsZ(double* potential){
 	//potential[plain_idx] = d_boundary[FAR]*(double(blockIdx.z)) +  d_boundary[NEAR] * (1.0 - blockIdx.z);
 	if (blockIdx.z == 0) {
 		potential[plain_idx] = d_boundary[NEAR];
+		assert((mesh_z == 0));
+		assert(plain_idx < d_n_nodes[0].x * d_n_nodes[0].y);
 	}
 	else {
 		potential[plain_idx] = d_boundary[FAR];
+		assert((mesh_z == (d_n_nodes[0].z - 1)));
+		assert(plain_idx > (d_n_nodes[0].z - 1) * d_n_nodes[0].x * d_n_nodes[0].y - 1);
 	}
 }
 
@@ -221,15 +226,15 @@ void SpatialMeshCu::init_constants(Config & conf) {
 	cell_size = make_double3(volume_size.x / (n_nodes.x - 1.0),
 		volume_size.y / (n_nodes.y - 1.0), volume_size.z / (n_nodes.z - 1.0));
 
-	if (cell_size.z != conf.mesh_config_part.grid_z_step) {
-		std::cout << "resulting cell size z: " << cell_size.z << ", expected: "
-			<< conf.mesh_config_part.grid_z_step << std::endl;
-		std::cout << "controll values: ";
-		std::cout << ceil(conf.mesh_config_part.grid_z_size
-			/ conf.mesh_config_part.grid_z_step);
-		std::cout << ' ' << conf.mesh_config_part.grid_z_size;
-		std::cout << ' ' << conf.mesh_config_part.grid_z_step <<  std::endl;
-	}
+	//if (cell_size.z != conf.mesh_config_part.grid_z_step) {
+	//	std::cout << "resulting cell size z: " << cell_size.z << ", expected: "
+	//		<< conf.mesh_config_part.grid_z_step << std::endl;
+	//	std::cout << "controll values: ";
+	//	std::cout << ceil(conf.mesh_config_part.grid_z_size
+	//		/ conf.mesh_config_part.grid_z_step);
+	//	std::cout << ' ' << conf.mesh_config_part.grid_z_size;
+	//	std::cout << ' ' << conf.mesh_config_part.grid_z_step <<  std::endl;
+	//}
 	copy_constants_to_device();
 	copy_boundary_to_device(conf);
 }
