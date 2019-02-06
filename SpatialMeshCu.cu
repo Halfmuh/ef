@@ -204,13 +204,13 @@ void SpatialMeshCu::check_correctness_of_related_config_fields(Config &conf) {
 
 void SpatialMeshCu::init_constants(Config & conf) {
 	n_nodes = make_int3(
-		ceil(
+		floor(
 			conf.mesh_config_part.grid_x_size
 			/ conf.mesh_config_part.grid_x_step) + 1,
-		ceil(
+		floor(
 			conf.mesh_config_part.grid_y_size
 			/ conf.mesh_config_part.grid_y_step) + 1,
-		ceil(
+		floor(
 			conf.mesh_config_part.grid_z_size
 			/ conf.mesh_config_part.grid_z_step) + 1);
 	
