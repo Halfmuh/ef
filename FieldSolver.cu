@@ -22,6 +22,16 @@ __device__ int GetIdx() {
 			mesh_y * d_n_nodes[0].x +
 			mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;
 }
+
+__device__ int3 GetMeshIdx() {
+	return make_int3(
+		threadIdx.x + blockIdx.x * blockDim.x,
+		threadIdx.y + blockIdx.y * blockDim.y,
+		threadIdx.z + blockIdx.z * blockDim.z
+	);
+
+}
+
 __device__ int GetIdx(int x, int y, int z) {
 	return 
 		x +
@@ -39,15 +49,9 @@ __global__ void SetPhiNextAsCurrent(double* d_phi_current, const double* d_phi_n
 }
 
 __global__ void ComputePhiNext(const double* d_phi_current, const double* d_charge, double* d_phi_next) {
-	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+	int3 mesh_idx = GetMeshIdx();
 
-	int idx = GetIdx(mesh_x, mesh_y, mesh_z);
-
-	int prev_x = max(mesh_x - 1, 0);
-	int prev_y = max(mesh_y - 1, 0);
-	int prev_z = max(mesh_z - 1, 0);
+	int idx = GetIdx(mesh_idx.x, mesh_idx.y, mesh_idx.z);
 
 	int3 prevCellIdx =  make_int3(
 			max(mesh_idx.x - 1, 0),
@@ -85,9 +89,6 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 
 	double denom = 2.0 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
 	//assert(denom > 0.0);
-
-	prev_neighbour_idx = GetIdx(prev_x, mesh_y, mesh_z);
-	next_neighbour_idx = GetIdx(next_x, mesh_y, mesh_z);
 
 	prev_neighbour_idx = GetIdx(prevCellIdx.x, mesh_idx.y, mesh_idx.z);
 	next_neighbour_idx = GetIdx(nextCellIdx.x, mesh_idx.y, mesh_idx.z);
