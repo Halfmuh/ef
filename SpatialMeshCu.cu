@@ -223,9 +223,12 @@ void SpatialMeshCu::init_constants(Config & conf) {
 
 	if (cell_size.z != conf.mesh_config_part.grid_z_step) {
 		std::cout << "resulting cell size z: " << cell_size.z << ", expected: "
-			<< conf.mesh_config_part.grid_z_step << "controll value: "
-			<< ceil(conf.mesh_config_part.grid_z_size
-				/ conf.mesh_config_part.grid_z_step) + 1 << std::endl;
+			<< conf.mesh_config_part.grid_z_step << std::endl;
+		std::cout << "controll values: ";
+		std::cout << ceil(conf.mesh_config_part.grid_z_size
+			/ conf.mesh_config_part.grid_z_step);
+		std::cout << ' ' << conf.mesh_config_part.grid_z_size;
+		std::cout << ' ' << conf.mesh_config_part.grid_z_step <<  std::endl;
 	}
 	copy_constants_to_device();
 	copy_boundary_to_device(conf);
