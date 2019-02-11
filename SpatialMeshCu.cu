@@ -44,6 +44,11 @@ __global__ void fill_coordinates(double3* node_coordinates) {
                                                    d_cell_size[0].z * mesh_idx.z);
 }
 
+__global__ void init_fill_potential(double* potential) {
+	int plain_idx = thread_idx_to_array_idx();
+	potential[plain_idx] = 0.0;
+}
+
 __global__ void SetBoundaryConditionsX(double* potential){
 	// blockIdx.x is expected to be 0 or 1; 0 - right boundary, 1 - left boundary
 	int mesh_x = blockIdx.x * (d_n_nodes[0].x - 1);
@@ -289,6 +294,8 @@ void SpatialMeshCu::allocate_ongrid_values() {
 
 	size_t total_node_count = nx * ny * nz;
 	cudaError_t cuda_status;
+	dim3 threads = GetThreads();
+	dim3 blocks = GetBlocks(threads);
 
 	std::string debug_message = std::string(" malloc coords");
 
@@ -297,18 +304,24 @@ void SpatialMeshCu::allocate_ongrid_values() {
 
 	debug_message = std::string(" malloc charde density");
 	cuda_status = cudaMalloc<double>(&dev_charge_density, sizeof(double) * total_node_count);
-	cudaMemset(dev_charge_density, 0, sizeof(double) * total_node_count);
+	//cudaMemset(dev_charge_density, 0, sizeof(double) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
+
+	init_fill_potential <<<block, threads >>> (_charge_density);
 
 	debug_message = std::string(" malloc potential");
 	cuda_status = cudaMalloc<double>(&dev_potential, sizeof(double) * total_node_count);
-	cudaMemset(dev_potential, 0, sizeof(double) * total_node_count);
+	//cudaMemset(dev_potential, 0, sizeof(double) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" malloc field");
 	cuda_status = cudaMalloc<double3>(&dev_electric_field, sizeof(double3) * total_node_count);
-	cudaMemset(dev_electric_field, 0, sizeof(double3) * total_node_count);
+	//cudaMemset(dev_electric_field, 0, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
+
+
+	init_fill_potential << <block, threads >> > (dev_potential);
+
 	return;
 }
 
