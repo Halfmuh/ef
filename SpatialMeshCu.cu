@@ -90,8 +90,8 @@ __global__ void SetConstGradientX(double* potential) {
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
 	
-	double coeficient = ( d_boundary[LEFT]-d_boundary[RIGHT])/(double)d_n_nodes->x;
-	double p = d_boundary[RIGHT] + coeficient * (double)mesh_x;
+	double coeficient = ( d_boundary[LEFT]-d_boundary[RIGHT])/ __int2double_rn(d_n_nodes->x);
+	double p = d_boundary[RIGHT] + coeficient * __int2double_rn(mesh_x);
 }
 
 __global__ void CheckFarCorners() {
