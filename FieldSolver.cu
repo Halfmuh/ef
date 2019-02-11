@@ -49,89 +49,89 @@ __global__ void SetPhiNextAsCurrent(double* d_phi_current, const double* d_phi_n
 }
 
 __global__ void ComputePhiNext(const double* d_phi_current, const double* d_charge, double* d_phi_next) {
-	int3 mesh_idx = GetMeshIdx();
+	//int3 mesh_idx = GetMeshIdx();
 
-	int idx = GetIdx(mesh_idx.x, mesh_idx.y, mesh_idx.z);
+	//int idx = GetIdx(mesh_idx.x, mesh_idx.y, mesh_idx.z);
 
-	int3 prevCellIdx =  make_int3(
-			max(mesh_idx.x - 1, 0),
-			max(mesh_idx.y - 1, 0),
-			max(mesh_idx.z - 1, 0)
-	);
+	//int3 prevCellIdx =  make_int3(
+	//		max(mesh_idx.x - 1, 0),
+	//		max(mesh_idx.y - 1, 0),
+	//		max(mesh_idx.z - 1, 0)
+	//);
 
-	int3 nextCellIdx = make_int3(
-		min(mesh_idx.x + 1, d_n_nodes[0].x - 1),
-		min(mesh_idx.y + 1, d_n_nodes[0].y - 1),
-		min(mesh_idx.z + 1, d_n_nodes[0].z - 1)
-	);
+	//int3 nextCellIdx = make_int3(
+	//	min(mesh_idx.x + 1, d_n_nodes[0].x - 1),
+	//	min(mesh_idx.y + 1, d_n_nodes[0].y - 1),
+	//	min(mesh_idx.z + 1, d_n_nodes[0].z - 1)
+	//);
 
-	//assert(nextCellIdx.x >= mesh_idx.x);
-	//assert(nextCellIdx.y >= mesh_idx.y);
-	//assert(nextCellIdx.z >= mesh_idx.z);
+	////assert(nextCellIdx.x >= mesh_idx.x);
+	////assert(nextCellIdx.y >= mesh_idx.y);
+	////assert(nextCellIdx.z >= mesh_idx.z);
 
-	//assert(prevCellIdx.x <= mesh_idx.x);
-	//assert(prevCellIdx.y <= mesh_idx.y);
-	//assert(prevCellIdx.z <= mesh_idx.z);
+	////assert(prevCellIdx.x <= mesh_idx.x);
+	////assert(prevCellIdx.y <= mesh_idx.y);
+	////assert(prevCellIdx.z <= mesh_idx.z);
 
-	//assert(nextCellIdx.x > prevCellIdx.x);
-	//assert(nextCellIdx.y > prevCellIdx.y);
-	//assert(nextCellIdx.z > prevCellIdx.z);
+	////assert(nextCellIdx.x > prevCellIdx.x);
+	////assert(nextCellIdx.y > prevCellIdx.y);
+	////assert(nextCellIdx.z > prevCellIdx.z);
 
-	//assert(next_);
-	//if (idx == 0) {
-	//	assert(mesh_idx.x == 0);
-	//	assert(mesh_idx.y == 0);
-	//	assert(mesh_idx.z == 0);
-	//}
+	////assert(next_);
+	////if (idx == 0) {
+	////	assert(mesh_idx.x == 0);
+	////	assert(mesh_idx.y == 0);
+	////	assert(mesh_idx.z == 0);
+	////}
 
-	int prev_neighbour_idx;
-	int next_neighbour_idx;
+	//int prev_neighbour_idx;
+	//int next_neighbour_idx;
 
-	double denom = 2.0 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
-	//assert(denom > 0.0);
+	//double denom = 2.0 * (dev_dxdxdydy[0] + dev_dxdxdzdz[0] + dev_dydydzdz[0]);
+	////assert(denom > 0.0);
 
-	prev_neighbour_idx = GetIdx(prevCellIdx.x, mesh_idx.y, mesh_idx.z);
-	next_neighbour_idx = GetIdx(nextCellIdx.x, mesh_idx.y, mesh_idx.z);
+	//prev_neighbour_idx = GetIdx(prevCellIdx.x, mesh_idx.y, mesh_idx.z);
+	//next_neighbour_idx = GetIdx(nextCellIdx.x, mesh_idx.y, mesh_idx.z);
 
-	//assert(next_neighbour_idx > prev_neighbour_idx);
+	////assert(next_neighbour_idx > prev_neighbour_idx);
 
-	d_phi_next[idx] =
-		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dydydzdz[0];
-	//assert(dev_dydydzdz[0] > 0.0);
+	//d_phi_next[idx] =
+	//	(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dydydzdz[0];
+	////assert(dev_dydydzdz[0] > 0.0);
 
-	prev_neighbour_idx = GetIdx(mesh_idx.x, prevCellIdx.y, mesh_idx.z);
-	next_neighbour_idx = GetIdx(mesh_idx.x, nextCellIdx.y, mesh_idx.z);
-	
-	//assert(next_neighbour_idx > prev_neighbour_idx);
+	//prev_neighbour_idx = GetIdx(mesh_idx.x, prevCellIdx.y, mesh_idx.z);
+	//next_neighbour_idx = GetIdx(mesh_idx.x, nextCellIdx.y, mesh_idx.z);
+	//
+	////assert(next_neighbour_idx > prev_neighbour_idx);
 
-	//if (mesh_idx.y == d_n_nodes[0].y - 1) {
-	//	assert(nextCellIdx.y == mesh_idx.y);
-	//}
+	////if (mesh_idx.y == d_n_nodes[0].y - 1) {
+	////	assert(nextCellIdx.y == mesh_idx.y);
+	////}
 
-	d_phi_next[idx] =
-		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdzdz[0] 
-		+ d_phi_next[idx];
-	//assert(dev_dxdxdzdz[0] > 0.0);
-	
-	prev_neighbour_idx = GetIdx(mesh_idx.x, mesh_idx.y, prevCellIdx.z);
-	next_neighbour_idx = GetIdx(mesh_idx.x, mesh_idx.y, nextCellIdx.z);
+	//d_phi_next[idx] =
+	//	(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdzdz[0] 
+	//	+ d_phi_next[idx];
+	////assert(dev_dxdxdzdz[0] > 0.0);
+	//
+	//prev_neighbour_idx = GetIdx(mesh_idx.x, mesh_idx.y, prevCellIdx.z);
+	//next_neighbour_idx = GetIdx(mesh_idx.x, mesh_idx.y, nextCellIdx.z);
 
-	//assert(next_neighbour_idx > prev_neighbour_idx);
+	////assert(next_neighbour_idx > prev_neighbour_idx);
 
-	double zCheck = (d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]);
-	d_phi_next[idx] =
-		(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdydy[0]
-		+ d_phi_next[idx];
-	//assert(dev_dxdxdydy[0] > 0.0);
+	//double zCheck = (d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]);
+	//d_phi_next[idx] =
+	//	(d_phi_current[next_neighbour_idx] + d_phi_current[prev_neighbour_idx]) * dev_dxdxdydy[0]
+	//	+ d_phi_next[idx];
+	////assert(dev_dxdxdydy[0] > 0.0);
 
-	//if (threadIdx.z == 0 && blockIdx.z == 0 && dev_dxdxdydy[0]) {
-	//	assert(NearBorderCheck(zCheck));
-	//}
-	
-	//assert(d_charge == 0);
-	//assert((4.0 * CUDART_PI * d_charge[idx] * dev_dxdxdydydzdz[0]) == 0);
-	d_phi_next[idx] += 4.0 * CUDART_PI * d_charge[idx] * dev_dxdxdydydzdz[0];
-	d_phi_next[idx] /= denom;
+	////if (threadIdx.z == 0 && blockIdx.z == 0 && dev_dxdxdydy[0]) {
+	////	assert(NearBorderCheck(zCheck));
+	////}
+	//
+	////assert(d_charge == 0);
+	////assert((4.0 * CUDART_PI * d_charge[idx] * dev_dxdxdydydzdz[0]) == 0);
+	//d_phi_next[idx] += 4.0 * CUDART_PI * d_charge[idx] * dev_dxdxdydydzdz[0];
+	//d_phi_next[idx] /= denom;
 
 }
 

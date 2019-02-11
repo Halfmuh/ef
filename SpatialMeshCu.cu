@@ -13,7 +13,7 @@ __constant__ double d_boundary[6];
 #define FAR 4
 #define NEAR 5
 
-__device__ int thread_idx_to_array_idx( int3 *d_n_nodes ){
+__device__ int thread_idx_to_array_idx(){
 	int xStepThread = 1;
 	int xStepBlock = blockDim.x;
 	int yStepThread = d_n_nodes[0].x;
@@ -26,18 +26,18 @@ __device__ int thread_idx_to_array_idx( int3 *d_n_nodes ){
                threadIdx.z * zStepThread + blockIdx.z * zStepBlock;
 }
 
-__device__ int3 thread_idx_to_mesh_idx( int3 *d_n_nodes ){
+__device__ int3 thread_idx_to_mesh_idx(){
         // each thread handles single volume node
 	int3 mesh_idx = make_int3( threadIdx.x + blockIdx.x * blockDim.x,
-                                   threadIdx.y + blockIdx.y * blockDim.y,
-	                           threadIdx.z + blockIdx.z * blockDim.z );
+                               threadIdx.y + blockIdx.y * blockDim.y,
+	                           threadIdx.z + blockIdx.z * blockDim.z);
         return mesh_idx;
 }
 
 
 __global__ void fill_coordinates(double3* node_coordinates) {
-	int plain_idx = thread_idx_to_array_idx( d_n_nodes );
-	int3 mesh_idx = thread_idx_to_mesh_idx( d_n_nodes );
+	int plain_idx = thread_idx_to_array_idx();
+	int3 mesh_idx = thread_idx_to_mesh_idx();
         
 	node_coordinates[plain_idx] = make_double3(d_cell_size[0].x * mesh_idx.x,
                                                    d_cell_size[0].y * mesh_idx.y, 
@@ -76,25 +76,27 @@ __global__ void SetBoundaryConditionsZ(double* potential){
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = blockIdx.z * (d_n_nodes[0].z - 1);
-	assert((blockIdx.z == 0) || (blockIdx.z == 1));
-	assert((mesh_z == 0) || (mesh_z == (d_n_nodes[0].z - 1)));
 	int plain_idx = mesh_x + 
                	        mesh_y * d_n_nodes[0].x + 
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
 	//potential[plain_idx] = d_boundary[FAR]*(double(blockIdx.z)) +  d_boundary[NEAR] * (1.0 - blockIdx.z);
-	if (blockIdx.z == 0) {
-		potential[plain_idx] = d_boundary[NEAR];
-		assert((mesh_z == 0));
-		assert(plain_idx < d_n_nodes[0].x * d_n_nodes[0].y);
-	}
-	else {
-		potential[plain_idx] = d_boundary[FAR];
-		assert((mesh_z == (d_n_nodes[0].z - 1)));
-		assert(plain_idx > (d_n_nodes[0].z - 1) * d_n_nodes[0].x * d_n_nodes[0].y - 1);
-	}
+                
 }
 
+__global__ void SetConstGradientX(double* potential) {
+	
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+	
+	double coeficient = ( d_boundary[LEFT]-d_boundary[RIGHT])/(double)d_n_nodes->x;
+	double p = d_boundary[RIGHT] + coeficient * (double)mesh_x;
+}
+
+__global__ void CheckFarCorners() {
+
+}
 SpatialMeshCu::SpatialMeshCu(Config &conf) {
 	check_correctness_of_related_config_fields(conf);
 	init_constants(conf);
@@ -340,13 +342,17 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
-	threads = dim3(4, 4, 1);
-	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
-	SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
+	//threads = dim3(4, 4, 1);
+	//blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
+	//SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
+	threads = dim3(4, 4, 4);
+	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, n_nodes.z / 4);
+	SetConstGradientX<<<blocks, threads>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 	
 	return;
+
 }
 
 
