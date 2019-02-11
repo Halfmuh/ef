@@ -81,7 +81,7 @@ __global__ void SetBoundaryConditionsZ(double* potential){
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
 	//potential[plain_idx] = d_boundary[FAR]*(double(blockIdx.z)) +  d_boundary[NEAR] * (1.0 - blockIdx.z);
-                
+	potential[plain_idx] = 0.0;
 }
 
 __global__ void SetConstGradientX(double* potential) {
@@ -92,7 +92,7 @@ __global__ void SetConstGradientX(double* potential) {
 	int array_idx = thread_idx_to_array_idx();
 	//double Left = ;
 	//double Right = ;
-	double coeficient = (d_boundary[LEFT] - d_boundary[RIGHT]) / __int2double_rn(d_n_nodes->x);
+	double coeficient = (d_boundary[LEFT] - d_boundary[RIGHT]) / (__int2double_rn(d_n_nodes->x) + 1.0);
 	double p = coeficient * __int2double_rn(mesh_x) + d_boundary[RIGHT];
 	potential[array_idx] = p;
 }
