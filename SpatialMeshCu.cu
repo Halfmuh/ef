@@ -48,10 +48,6 @@ __global__ void init_fill_potential(double* potential) {
 	potential[plain_idx] = 0.0;
 }
 
-__global__ void init_fill_potential(double* potential) {
-	int plain_idx = thread_idx_to_array_idx();
-	potential[plain_idx] = 0.0;
-}
 
 __global__ void SetBoundaryConditionsX(double* potential){
 	// blockIdx.x is expected to be 0 or 1; 0 - right boundary, 1 - left boundary
@@ -311,7 +307,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	//cudaMemset(dev_charge_density, 0, sizeof(double) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
-	init_fill_potential <<<block, threads >>> (dev_charge_density);
+	init_fill_potential <<<blocks, threads >>> (dev_charge_density);
 
 	debug_message = std::string(" malloc potential");
 	cuda_status = cudaMalloc<double>(&dev_potential, sizeof(double) * total_node_count);
@@ -324,7 +320,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	cuda_status_check(cuda_status, debug_message);
 
 
-	init_fill_potential << <block, threads >> > (dev_potential);
+	init_fill_potential << <blocks, threads >> > (dev_potential);
 
 	return;
 }
