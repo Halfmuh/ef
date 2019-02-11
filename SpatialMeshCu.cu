@@ -321,6 +321,9 @@ void SpatialMeshCu::allocate_ongrid_values() {
 
 
 	init_fill_potential << <blocks, threads >> > (dev_potential);
+	cuda_status = cudaMalloc<double3>(&dev_electric_field, sizeof(double3) * total_node_count);
+	//cudaMemset(dev_electric_field, 0, sizeof(double3) * total_node_count);
+	cuda_status_check(cuda_status, debug_message);
 
 	return;
 }
