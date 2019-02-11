@@ -352,7 +352,7 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	//SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
 	threads = dim3(4, 4, 4);
 	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, n_nodes.z / 4);
-	SetConstGradientX<<<blocks, threads>>>(d_potential);
+	//SetConstGradientX<<<blocks, threads>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 	
