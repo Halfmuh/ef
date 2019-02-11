@@ -84,8 +84,8 @@ __global__ void SetBoundaryConditionsZ(double* potential){
                	        mesh_y * d_n_nodes->x + 
                	        mesh_z * d_n_nodes->x * d_n_nodes->y;	
 
-	double p = d_boundary[FAR] * __uint2double_rn(blockIdx.z) +
-		d_boundary[NEAR] * (1.0 - __uint2double_rn(blockIdx.z));
+	double p = __uint2double_rn(blockIdx.z) * d_boundary[FAR] +
+		(1.0 - __uint2double_rn(blockIdx.z) * d_boundary[NEAR]);
 	potential[plain_idx] = p;
 }
 
