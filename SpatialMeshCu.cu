@@ -90,10 +90,10 @@ __global__ void SetConstGradientX(double* potential) {
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
 	int array_idx = thread_idx_to_array_idx();
-	double Left = d_boundary[LEFT];
-	double Right = d_boundary[RIGHT];
-	double coeficient = ( Left - Right) / __int2double_rn(d_n_nodes->x);
-	double p = coeficient * __int2double_rn(mesh_x) + Right;
+	//double Left = ;
+	//double Right = ;
+	double coeficient = (d_boundary[LEFT] - d_boundary[RIGHT]) / __int2double_rn(d_n_nodes->x);
+	double p = coeficient * __int2double_rn(mesh_x) + d_boundary[RIGHT];
 	potential[array_idx] = p;
 }
 
