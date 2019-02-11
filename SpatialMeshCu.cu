@@ -43,6 +43,10 @@ __global__ void fill_coordinates(double3* node_coordinates) {
                                                    d_cell_size[0].y * mesh_idx.y, 
                                                    d_cell_size[0].z * mesh_idx.z);
 }
+__global__ void init_fill_potential(double* potential) {
+	int plain_idx = thread_idx_to_array_idx();
+	potential[plain_idx] = 0.0;
+}
 
 __global__ void SetBoundaryConditionsX(double* potential){
 	// blockIdx.x is expected to be 0 or 1; 0 - right boundary, 1 - left boundary
