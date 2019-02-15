@@ -112,7 +112,7 @@ __global__ void SetBoundaryConditionsSlow(double* potential) {
 	}
 	if (mesh_idx.z == 0)
 	{
-		potential[flat_idx] = d_boundary[NEAR]
+		potential[flat_idx] = d_boundary[NEAR];
 	}
 	if (mesh_idx.z == d_n_nodes->z - 1) {
 		potential[flat_idx] = d_boundary[FAR];
