@@ -94,6 +94,31 @@ __global__ void SetBoundaryConditionsZ(double* potential){
 	potential[plain_idx] = p;
 }
 
+__global__ void SetBoundaryConditionsSlow(double* potential) {
+	int3 mesh_idx = thread_idx_to_mesh_idx();
+	int flat_idx = thread_idx_to_array_idx();
+	if (mesh_idx.x == 0) {
+		potential[flat_idx] = d_boundary[RIGHT];
+	}
+	if (mesh_idx.x == d_n_nodes->x - 1) {
+		potential[flat_idx] = d_boundary[LEFT];
+	}
+	if (mesh_idx.y == 0)
+	{
+		potential[flat_idx] = d_boundary[BOTTOM];
+	}
+	if (mesh_idx.y == d_n_nodes->y - 1) {
+		potential[flat_idx] = d_boundary[TOP];
+	}
+	if (mesh_idx.z == 0)
+	{
+		potential[flat_idx] = d_boundary[NEAR]
+	}
+	if (mesh_idx.z == d_n_nodes->z - 1) {
+		potential[flat_idx] = d_boundary[FAR];
+	}
+}
+
 __global__ void SetConstGradientX(double* potential) {
 	
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -320,13 +345,15 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	cuda_status_check(cuda_status, debug_message);
 
 
-	init_fill_potential << <blocks, threads >> > (dev_potential);
+	init_fill_potential <<<blocks, threads >>> (dev_potential);
 	cuda_status = cudaMalloc<double3>(&dev_electric_field, sizeof(double3) * total_node_count);
 	//cudaMemset(dev_electric_field, 0, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
 	return;
 }
+
+
 
 void SpatialMeshCu::fill_node_coordinates() {
 	dim3 threads = GetThreads();
@@ -352,23 +379,27 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	dim3 threads, blocks;		
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" set boundary ");
+	threads = GetThreads();
+	blocks = GetBlocks(threads);
+
+	SetBoundaryConditionsSlow <<< blocks, threads >>> (d_potential);
 
 	// todo: no magic numbers
-	threads = dim3(1, 4, 4);
-	blocks = dim3(2, n_nodes.y / 4, n_nodes.z / 4);
-	SetBoundaryConditionsX<<<blocks, threads>>>(d_potential);
-	cuda_status = cudaDeviceSynchronize();
-	cuda_status_check(cuda_status, debug_message);
-	
-	threads = dim3(4, 1, 4);
-	blocks = dim3(n_nodes.x / 4, 2, n_nodes.z / 4);
-	SetBoundaryConditionsY<<<blocks, threads>>>(d_potential);
-	cuda_status = cudaDeviceSynchronize();
-	cuda_status_check(cuda_status, debug_message);
+	//threads = dim3(1, 4, 4);
+	//blocks = dim3(2, n_nodes.y / 4, n_nodes.z / 4);
+	//SetBoundaryConditionsX<<<blocks, threads>>>(d_potential);
+	//cuda_status = cudaDeviceSynchronize();
+	//cuda_status_check(cuda_status, debug_message);
+	//
+	//threads = dim3(4, 1, 4);
+	//blocks = dim3(n_nodes.x / 4, 2, n_nodes.z / 4);
+	//SetBoundaryConditionsY<<<blocks, threads>>>(d_potential);
+	//cuda_status = cudaDeviceSynchronize();
+	//cuda_status_check(cuda_status, debug_message);
 
-	threads = dim3(4, 4, 1);
-	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
-	SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
+	//threads = dim3(4, 4, 1);
+	//blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
+	//SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
 	//threads = dim3(4, 4, 4);
 	//blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, n_nodes.z / 4);
 	//SetConstGradientX<<<blocks, threads>>>(d_potential);
