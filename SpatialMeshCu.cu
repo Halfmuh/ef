@@ -96,6 +96,8 @@ __global__ void SetBoundaryConditionsSlow(double* potential) {
 	assert( blockDim.z == 4);
 	assert( gridDim.x == 8);
 	assert( gridDim.z == 32);
+	assert(d_n_nodes->x == 32);
+	assert(d_n_nodes->y == 32);
 	int3 mesh_idx = thread_idx_to_mesh_idx();
 	int flat_idx = thread_idx_to_array_idx();
 	if (mesh_idx.x == 0) {
