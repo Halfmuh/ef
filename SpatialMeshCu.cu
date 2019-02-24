@@ -14,16 +14,12 @@ __constant__ double d_boundary[6];
 #define NEAR 5
 
 __device__ int thread_idx_to_array_idx(){
-	int xStepThread = 1;
-	int xStepBlock = blockDim.x;
-	int yStepThread = d_n_nodes[0].x;
-	int yStepBlock = yStepThread * blockDim.y;
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
-	int zStepBlock = zStepThread * blockDim.z;
-
-	return threadIdx.x * xStepThread + blockIdx.x * xStepBlock + 
-               threadIdx.y * yStepThread + blockIdx.y * yStepBlock + 
-               threadIdx.z * zStepThread + blockIdx.z * zStepBlock;
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+	return mesh_x +
+		mesh_y * d_n_nodes[0].x +
+		mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;
 }
 
 __device__ int3 thread_idx_to_mesh_idx(){
