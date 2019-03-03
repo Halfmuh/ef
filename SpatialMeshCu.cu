@@ -1,10 +1,10 @@
 #include "SpatialMeshCu.cuh"
 #include <cassert>
 
-__constant__ double3 d_volume_size[1];
-__constant__ double3 d_cell_size[1];
-__constant__ int3 d_n_nodes[1];
-__constant__ double d_boundary[6];
+double3* d_volume_size;
+double3* d_cell_size;
+int3* d_n_nodes;
+double* d_boundary;
 
 #define TOP 0
 #define BOTTOM 1
@@ -17,6 +17,8 @@ __device__ int thread_idx_to_array_idx(){
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+	assert((blockDim.x * gridDim.x) == 32);
+
 	return mesh_x +
 		mesh_y * d_n_nodes[0].x +
 		mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;
@@ -79,7 +81,7 @@ __global__ void SetBoundaryConditionsY(double* potential){
 __global__ void SetBoundaryConditionsZ(double* potential){
 	// blockIdx.z is expected to be 0 or 1; 0 - near boundary, 1 - far boundary
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;  
 	int mesh_z = blockIdx.z * (d_n_nodes[0].z - 1);
 	int plain_idx = mesh_x + 
                	        mesh_y * d_n_nodes->x + 
@@ -285,16 +287,31 @@ void SpatialMeshCu::init_constants(Config & conf) {
 void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
 	//mesh params
-	std::string debug_message = std::string(" copy nodes number ");
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&n_nodes, sizeof(int3));
+	size_t total_node_count = n_nodes.x * n_nodes.y * n_nodes.z;
+
+	std::string debug_message = std::string(" alloc nodes number ");
+
+	cuda_status = cudaMalloc<int3>(&d_n_nodes, sizeof(int3));
+	cuda_status_check(cuda_status, debug_message);
+
+	debug_message = std::string(" alloc volume size ");
+	cuda_status = cudaMalloc<double3>(&d_volume_size, sizeof(double3));
+	cuda_status_check(cuda_status, debug_message);
+
+	debug_message = std::string(" alloc cell size ");
+	cuda_status = cudaMalloc<double3>(&d_cell_size, sizeof(double3));
+	cuda_status_check(cuda_status, debug_message);
+
+	debug_message = std::string(" copy nodes number ");
+	cuda_status = cudaMemcpy(d_n_nodes, (const void*)&n_nodes, sizeof(int3), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" copy volume size ");
-	cuda_status = cudaMemcpyToSymbol(d_volume_size, (const void*)&volume_size, sizeof(double3));
+	cuda_status = cudaMemcpy(d_volume_size, (const void*)&volume_size, sizeof(double3), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
-	
+
 	debug_message = std::string(" copy cell size ");
-	cuda_status = cudaMemcpyToSymbol(d_cell_size, (const void*)&cell_size, sizeof(double3));
+	cuda_status = cudaMemcpy(d_cell_size, (const void*)&cell_size, sizeof(double3), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
 	return;
