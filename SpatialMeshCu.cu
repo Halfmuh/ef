@@ -98,7 +98,7 @@ __global__ void SetBoundaryConditionsSlow(double* potential, int3* d_n_nodes, do
 	assert(d_n_nodes->x == 32);
 	assert(d_n_nodes->y == 32);
 	int3 mesh_idx = thread_idx_to_mesh_idx();
-	int flat_idx = thread_idx_to_array_idx();
+	int flat_idx = thread_idx_to_array_idx(d_n_nodes);
 	if (mesh_idx.x == 0) {
 		potential[flat_idx] = d_boundary[RIGHT];
 	}
