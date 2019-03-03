@@ -319,6 +319,7 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	//boundary params
 	std::string debug_message = std::string(" copy border constants ");
 	double boundary[6];
+	cudaMalloc<double>( &d_boundary, sizeof(double) * 6);
 	boundary[RIGHT] = conf.boundary_config_part.boundary_phi_right;
 	boundary[LEFT] = conf.boundary_config_part.boundary_phi_left;
 	boundary[TOP] = conf.boundary_config_part.boundary_phi_top;
