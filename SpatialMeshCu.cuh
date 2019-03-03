@@ -20,7 +20,6 @@ public:
 	double *dev_potential;
 	double3 *dev_electric_field;
 
-
 	//double border_left;
 	//double border_right;
 	//double border_top;
@@ -44,6 +43,10 @@ public:
 	dim3 GetThreads();
 	dim3 GetBlocks(dim3 nThreads);
 private:
+	double3 * d_volume_size;
+	double3* d_cell_size;
+	int3* d_n_nodes;
+	double* d_boundary;
 	// init
 	void check_correctness_of_related_config_fields(Config &conf);
 	void init_constants(Config &conf);

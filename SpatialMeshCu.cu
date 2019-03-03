@@ -1,10 +1,7 @@
 #include "SpatialMeshCu.cuh"
 #include <cassert>
 
-__constant__ double3 d_volume_size[1];
-__constant__ double3 d_cell_size[1];
-__constant__ int3 d_n_nodes[1];
-__constant__ double d_boundary[6];
+
 
 #define TOP 0
 #define BOTTOM 1
@@ -13,10 +10,12 @@ __constant__ double d_boundary[6];
 #define FAR 4
 #define NEAR 5
 
-__device__ int thread_idx_to_array_idx(){
+__device__ int thread_idx_to_array_idx(int3* d_n_nodes){
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+	assert((blockDim.x * gridDim.x) == 32);
+
 	return mesh_x +
 		mesh_y * d_n_nodes[0].x +
 		mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;
@@ -31,21 +30,21 @@ __device__ int3 thread_idx_to_mesh_idx(){
 }
 
 
-__global__ void fill_coordinates(double3* node_coordinates) {
-	int plain_idx = thread_idx_to_array_idx();
+__global__ void fill_coordinates(double3* node_coordinates, int3* d_n_nodes, double3* d_cell_size) {
+	int plain_idx = thread_idx_to_array_idx(d_n_nodes);
 	int3 mesh_idx = thread_idx_to_mesh_idx();
         
 	node_coordinates[plain_idx] = make_double3(d_cell_size[0].x * mesh_idx.x,
                                                    d_cell_size[0].y * mesh_idx.y, 
                                                    d_cell_size[0].z * mesh_idx.z);
 }
-__global__ void init_fill_potential(double* potential) {
-	int plain_idx = thread_idx_to_array_idx();
+__global__ void init_fill_potential(double* potential, int3* d_n_nodes) {
+	int plain_idx = thread_idx_to_array_idx(d_n_nodes);
 	potential[plain_idx] = 0.0;
 }
 
 
-__global__ void SetBoundaryConditionsX(double* potential){
+__global__ void SetBoundaryConditionsX(double* potential, int3* d_n_nodes, double* d_boundary){
 	// blockIdx.x is expected to be 0 or 1; 0 - right boundary, 1 - left boundary
 	int mesh_x = blockIdx.x * (d_n_nodes[0].x - 1);
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -60,7 +59,7 @@ __global__ void SetBoundaryConditionsX(double* potential){
 	potential[plain_idx] = p;
 }
 
-__global__ void SetBoundaryConditionsY(double* potential){
+__global__ void SetBoundaryConditionsY(double* potential, int3* d_n_nodes, double* d_boundary){
 	// blockIdx.y is expected to be 0 or 1; 0 - bottom boundary, 1 - top boundary
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int mesh_y = blockIdx.y * (d_n_nodes[0].y - 1);
@@ -76,10 +75,10 @@ __global__ void SetBoundaryConditionsY(double* potential){
 }
 
 
-__global__ void SetBoundaryConditionsZ(double* potential){
+__global__ void SetBoundaryConditionsZ(double* potential, int3* d_n_nodes, double* d_boundary){
 	// blockIdx.z is expected to be 0 or 1; 0 - near boundary, 1 - far boundary
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;  
 	int mesh_z = blockIdx.z * (d_n_nodes[0].z - 1);
 	int plain_idx = mesh_x + 
                	        mesh_y * d_n_nodes->x + 
@@ -90,7 +89,7 @@ __global__ void SetBoundaryConditionsZ(double* potential){
 	potential[plain_idx] = p;
 }
 
-__global__ void SetBoundaryConditionsSlow(double* potential) {
+__global__ void SetBoundaryConditionsSlow(double* potential, int3* d_n_nodes, double* d_boundary) {
 	assert( blockDim.x == blockDim.y);
 	assert( blockDim.y == blockDim.z);
 	assert( blockDim.z == 4);
@@ -122,12 +121,12 @@ __global__ void SetBoundaryConditionsSlow(double* potential) {
 	}
 }
 
-__global__ void SetConstGradientX(double* potential) {
+__global__ void SetConstGradientX(double* potential, int3* d_n_nodes, double* d_boundary) {
 	
 	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
-	int array_idx = thread_idx_to_array_idx();
+	int array_idx = thread_idx_to_array_idx(d_n_nodes);
 	//double Left = ;
 	//double Right = ;
 	double coeficient = (d_boundary[LEFT] - d_boundary[RIGHT]) / (__int2double_rn(d_n_nodes->x) + 1.0);
@@ -285,16 +284,31 @@ void SpatialMeshCu::init_constants(Config & conf) {
 void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
 	//mesh params
-	std::string debug_message = std::string(" copy nodes number ");
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&n_nodes, sizeof(int3));
+	size_t total_node_count = n_nodes.x * n_nodes.y * n_nodes.z;
+
+	std::string debug_message = std::string(" alloc nodes number ");
+
+	cuda_status = cudaMalloc<int3>(&d_n_nodes, sizeof(int3));
+	cuda_status_check(cuda_status, debug_message);
+
+	debug_message = std::string(" alloc volume size ");
+	cuda_status = cudaMalloc<double3>(&d_volume_size, sizeof(double3));
+	cuda_status_check(cuda_status, debug_message);
+
+	debug_message = std::string(" alloc cell size ");
+	cuda_status = cudaMalloc<double3>(&d_cell_size, sizeof(double3));
+	cuda_status_check(cuda_status, debug_message);
+
+	debug_message = std::string(" copy nodes number ");
+	cuda_status = cudaMemcpy(d_n_nodes, (const void*)&n_nodes, sizeof(int3), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" copy volume size ");
-	cuda_status = cudaMemcpyToSymbol(d_volume_size, (const void*)&volume_size, sizeof(double3));
+	cuda_status = cudaMemcpy(d_volume_size, (const void*)&volume_size, sizeof(double3), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
-	
+
 	debug_message = std::string(" copy cell size ");
-	cuda_status = cudaMemcpyToSymbol(d_cell_size, (const void*)&cell_size, sizeof(double3));
+	cuda_status = cudaMemcpy(d_cell_size, (const void*)&cell_size, sizeof(double3), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
 	return;
@@ -335,7 +349,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	//cudaMemset(dev_charge_density, 0, sizeof(double) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
-	init_fill_potential <<<blocks, threads >>> (dev_charge_density);
+	init_fill_potential <<<blocks, threads >>> (dev_charge_density, d_n_nodes);
 
 	debug_message = std::string(" malloc potential");
 	cuda_status = cudaMalloc<double>(&dev_potential, sizeof(double) * total_node_count);
@@ -348,7 +362,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	cuda_status_check(cuda_status, debug_message);
 
 
-	init_fill_potential <<<blocks, threads >>> (dev_potential);
+	init_fill_potential <<<blocks, threads >>> (dev_potential, d_n_nodes);
 	cuda_status = cudaMalloc<double3>(&dev_electric_field, sizeof(double3) * total_node_count);
 	//cudaMemset(dev_electric_field, 0, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
@@ -363,7 +377,7 @@ void SpatialMeshCu::fill_node_coordinates() {
 	dim3 blocks = GetBlocks(threads);
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" fill coordinates ");
-	fill_coordinates<<<blocks,threads>>>(dev_node_coordinates);
+	fill_coordinates<<<blocks,threads>>>(dev_node_coordinates, d_n_nodes, d_cell_size);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
@@ -385,7 +399,7 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	threads = GetThreads();
 	blocks = GetBlocks(threads);
 
-	SetBoundaryConditionsSlow <<< blocks, threads >>> (d_potential);
+	SetBoundaryConditionsSlow <<< blocks, threads >>> (d_potential, d_n_nodes, d_boundary);
 
 	// todo: no magic numbers
 	//threads = dim3(1, 4, 4);
