@@ -194,7 +194,7 @@ SpatialMeshCu::SpatialMeshCu(hid_t h5_spat_mesh_group) {
 
 	dim3 threads = GetThreads();
 	dim3 blocks = GetBlocks(threads);
-	fill_coordinates <<< blocks, threads >>> (dev_node_coordinates);
+	fill_coordinates <<< blocks, threads >>> (dev_node_coordinates, d_n_nodes, d_cell_size);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
